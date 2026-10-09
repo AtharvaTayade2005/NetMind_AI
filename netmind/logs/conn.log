@@ -1,0 +1,17 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#open	2026-10-09-10-00-00
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	local_orig	local_resp	missed_bytes	history	orig_pkts	orig_ip_bytes	resp_pkts	resp_ip_bytes	tunnel_parents
+#types	time	string	addr	port	addr	port	string	string	interval	count	count	string	bool	bool	count	string	count	count	count	count	set[string]
+1728468000.100120	C10101	192.168.1.105	54321	10.0.0.50	80	tcp	http	0.850000	450	4820	SF	T	T	0	ShADdfFa	8	850	12	5420	-
+1728468001.200340	C10102	192.168.1.105	54322	8.8.8.8	53	udp	dns	0.012500	54	186	SF	T	F	0	Dd	1	82	1	214	-
+1728468002.300560	C10103	192.168.1.200	41234	10.0.0.50	22	tcp	-	-	-	-	S0	T	T	0	S	1	60	0	0	-
+1728468002.350780	C10104	192.168.1.200	41235	10.0.0.50	8080	tcp	-	0.001200	0	0	REJ	T	T	0	Sr	1	60	1	40	-
+1728468002.400900	C10105	192.168.1.200	41236	10.0.0.51	3389	tcp	-	-	-	-	S0	T	T	0	S	2	120	0	0	-
+1728468003.500110	C10106	192.168.1.105	54323	10.0.0.50	443	tcp	ssl	2.450000	1250	15800	SF	T	T	0	ShADadfF	15	2000	22	16920	-
+1728468004.600220	C10107	192.168.1.110	51200	10.0.0.60	80	tcp	http	0.120000	320	150	RSTO	T	T	0	ShADr	4	520	3	310	-
+1728468005.700330	C10108	192.168.1.105	54324	10.0.0.50	443	tcp	ssl	35.200000	45000	1200000	SF	T	T	0	ShADadFf	320	61000	610	1232000	-
+#close	2026-10-09-10-05-00
