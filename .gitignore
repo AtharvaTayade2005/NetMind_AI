@@ -48,6 +48,18 @@ htmlcov/
 *.swp
 *.swo
 
+# Database & checkpoint files
+*.db
+*.sqlite
+*.sqlite3
+.tailer_checkpoint.json
+*.tmp
+
+# Node / Frontend
+node_modules/
+dist/
+
 # OS files
 .DS_Store
 Thumbs.db
+
