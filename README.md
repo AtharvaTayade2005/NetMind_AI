@@ -8,10 +8,13 @@
 [![React 18](https://img.shields.io/badge/React-18.3+-61DAFB.svg)](https://react.dev/)
 [![Tests](https://img.shields.io/badge/tests-33%20passed-green.svg)](#6-automated-validation--testing-suite)
 [![Architecture Docs](https://img.shields.io/badge/Docs-workflow.md-purple.svg)](workflow.md)
+[![Telemetry Deep Dive](https://img.shields.io/badge/Docs-TELEMETRY__PIPELINE.md-blue.svg)](TELEMETRY_PIPELINE.md)
 
 **NetMind AI** is an end-to-end, autonomous network intelligence platform engineered to ingest wire-speed telemetry, detect zero-day and signature threats, forecast interface congestion, explain machine decisions, and execute human-reviewed containment actions.
 
-> 📖 **Comprehensive File & Library Reference:** For an exhaustive, file-by-file, package-by-package, and library-by-library breakdown of the entire architecture, see [workflow.md](workflow.md).
+> 📖 **Deep Dive Documentation:**
+> - **[TELEMETRY_PIPELINE.md](TELEMETRY_PIPELINE.md)**: Explains the exact nature of the network input (packets vs. flows), step-by-step processing blending Cybersecurity, Data Science, and AI/ML, and traces an adversarial packet through every folder, file, and library.
+> - **[workflow.md](workflow.md)**: Exhaustive, file-by-file, package-by-package, and library-by-library reference of the entire repository.
 
 ---
 
