@@ -1,11 +1,13 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faNetworkWired, faCircle, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { NetworkInterfaceInfo } from '../../services/api';
 
 interface NavbarProps {
   activeSegment: string;
   onSelectSegment: (segment: string) => void;
   ingestionActive?: boolean;
+  availableInterfaces?: NetworkInterfaceInfo[];
 }
 
 /**
@@ -16,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeSegment,
   onSelectSegment,
   ingestionActive = true,
+  availableInterfaces = [],
 }) => {
   return (
     <header className="h-14 bg-white border-b border-slate-200 px-5 flex items-center justify-between z-20 shrink-0">
@@ -43,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className={`text-[8px] ${ingestionActive ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`}
           />
           <span className="font-medium">
-            Ingestion Active: <span className="text-slate-900 font-semibold">Zeek / Suricata</span>
+            Live NIC Sniffer: <span className="text-slate-900 font-semibold">{activeSegment}</span>
           </span>
         </div>
 
@@ -54,15 +57,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             onChange={(e) => onSelectSegment(e.target.value)}
             className="text-xs bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-800 font-medium py-1 px-2.5 pr-7 rounded focus:outline-none focus:ring-1 focus:ring-blue-600 cursor-pointer appearance-none"
           >
-            <option value="Interface: eth0 [192.168.1.0/24]">
-              Interface: eth0 [192.168.1.0/24]
-            </option>
-            <option value="Interface: eth1 [10.0.0.0/24]">
-              Interface: eth1 [10.0.0.0/24]
-            </option>
-            <option value="Interface: wg0 [172.16.0.0/16]">
-              Interface: wg0 [172.16.0.0/16]
-            </option>
+            {availableInterfaces.length > 0 ? (
+              availableInterfaces.map((iface) => (
+                <option key={iface.name} value={iface.name}>
+                  NIC: {iface.name} ({iface.ip}) {iface.is_up ? '● Up' : '○ Down'}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value="Wi-Fi">NIC: Wi-Fi</option>
+                <option value="Ethernet">NIC: Ethernet</option>
+                <option value="Loopback Pseudo-Interface 1">NIC: Loopback</option>
+              </>
+            )}
           </select>
           <FontAwesomeIcon
             icon={faChevronDown}

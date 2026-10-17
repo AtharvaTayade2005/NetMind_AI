@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar, NavTab } from './components/layout/Sidebar';
 import { Overview } from './pages/Overview';
@@ -20,6 +20,11 @@ import {
 } from './services/mockData';
 
 import {
+  apiService,
+  NetworkInterfaceInfo,
+} from './services/api';
+
+import {
   SecurityAlert,
   FlowTelemetry,
   AnomalyRecord,
@@ -32,16 +37,15 @@ import {
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
-  const [activeSegment, setActiveSegment] = useState<string>(
-    'Interface: eth0 [192.168.1.0/24]'
-  );
+  const [activeSegment, setActiveSegment] = useState<string>('Wi-Fi');
+  const [availableInterfaces, setAvailableInterfaces] = useState<NetworkInterfaceInfo[]>([]);
 
-  // Core application state
+  // Core dynamic application state
   const [alerts, setAlerts] = useState<SecurityAlert[]>(MOCK_ALERTS);
-  const [flows] = useState<FlowTelemetry[]>(MOCK_FLOWS);
-  const [anomalies] = useState<AnomalyRecord[]>(MOCK_ANOMALIES);
-  const [telemetrySeries] = useState<TelemetryDataPoint[]>(MOCK_TELEMETRY_SERIES);
-  const [forecastData] = useState<TrafficForecast[]>(MOCK_TRAFFIC_FORECAST);
+  const [flows, setFlows] = useState<FlowTelemetry[]>(MOCK_FLOWS);
+  const [anomalies, setAnomalies] = useState<AnomalyRecord[]>(MOCK_ANOMALIES);
+  const [telemetrySeries, setTelemetrySeries] = useState<TelemetryDataPoint[]>(MOCK_TELEMETRY_SERIES);
+  const [forecastData, setForecastData] = useState<TrafficForecast[]>(MOCK_TRAFFIC_FORECAST);
   const [recommendations, setRecommendations] = useState<RecommendationAction[]>(
     MOCK_RECOMMENDATIONS
   );
@@ -50,6 +54,67 @@ export function App() {
   // Decision Support Inspection Modal state
   const [selectedAlert, setSelectedAlert] = useState<SecurityAlert | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  // Real-Time Live Polling Engine (1.2s Interval)
+  useEffect(() => {
+    let isMounted = true;
+
+    // Discover host network interfaces
+    apiService.getInterfaces().then((res) => {
+      if (!isMounted) return;
+      if (res.interfaces && res.interfaces.length > 0) {
+        setAvailableInterfaces(res.interfaces);
+      }
+      if (res.active) {
+        setActiveSegment(res.active);
+      }
+    });
+
+    const pollLiveTelemetry = async () => {
+      try {
+        const [tel, r, f, a, recs] = await Promise.all([
+          apiService.getLiveTelemetry(),
+          apiService.getRiskIndex(),
+          apiService.getLiveFlows(),
+          apiService.getAlerts(),
+          apiService.getRecommendations(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (tel && tel.series && tel.series.length > 0) {
+          setTelemetrySeries(tel.series);
+        }
+        if (r) {
+          setRiskIndex(r);
+        }
+        if (f && f.length > 0) {
+          setFlows(f);
+        }
+        if (a && a.length > 0) {
+          setAlerts(a);
+        }
+        if (recs && recs.length > 0) {
+          setRecommendations(recs);
+        }
+      } catch (err) {
+        console.warn('Real-time telemetry poll update notice:', err);
+      }
+    };
+
+    pollLiveTelemetry();
+    const interval = setInterval(pollLiveTelemetry, 1200);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleSelectSegment = async (segment: string) => {
+    setActiveSegment(segment);
+    await apiService.switchInterface(segment);
+  };
 
   const handleOpenAlert = (alert: SecurityAlert) => {
     setSelectedAlert(alert);
@@ -94,6 +159,8 @@ export function App() {
         activeIncidentsCount: Math.max(0, prev.activeIncidentsCount - 1),
       }));
     }
+
+    apiService.reviewAlert(alertId, status, note);
   };
 
   const handleExecuteRecommendation = (recId: string) => {
@@ -108,6 +175,8 @@ export function App() {
         prev.map((a) => (a.id === rec.alertId ? { ...a, status: 'RESOLVED' } : a))
       );
     }
+
+    apiService.executeRemediation(recId);
   };
 
   const pendingAlertsCount = alerts.filter(
@@ -117,11 +186,12 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 font-sans antialiased">
-      {/* 1. Global Navigation Bar */}
+      {/* 1. Global Navigation Bar with Live Interface Selector */}
       <Navbar
         activeSegment={activeSegment}
-        onSelectSegment={setActiveSegment}
+        onSelectSegment={handleSelectSegment}
         ingestionActive={true}
+        availableInterfaces={availableInterfaces}
       />
 
       {/* 2. Main Two-Column Viewport */}

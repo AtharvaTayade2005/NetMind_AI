@@ -45,22 +45,30 @@ def get_network_status(db: Session = Depends(get_db)) -> NetworkStatusSummary:
         select(func.count(models.Recommendation.id)).where(models.Recommendation.status == "pending")
     ) or 0
 
-    # 4. Live Bandwidth / Packet Rates from latest predictions or default telemetry
-    latest_bytes_pred = db.scalar(
-        select(models.Prediction.prediction)
-        .where(models.Prediction.target == "bytes_per_second")
-        .order_by(models.Prediction.timestamp.desc())
-        .limit(1)
-    )
-    latest_pkts_pred = db.scalar(
-        select(models.Prediction.prediction)
-        .where(models.Prediction.target == "packets_per_second")
-        .order_by(models.Prediction.timestamp.desc())
-        .limit(1)
-    )
+    # 4. Live Bandwidth / Packet Rates from hardware NIC or ML predictions
+    from netmind.src.ingestion.nic_sniffer import LiveNICCapture
+    nic = LiveNICCapture.get_instance()
+    nic_pps = nic.current_inbound_pps + nic.current_outbound_pps
+    nic_bps = (nic.current_inbound_mbps + nic.current_outbound_mbps) * 1_000_000.0 / 8.0
 
-    current_bps = float(latest_bytes_pred or 1450000.0)  # default nominal ~1.45 MB/s
-    current_pps = float(latest_pkts_pred or 2400.0)      # default nominal ~2.4k pps
+    if nic_pps > 0 or nic_bps > 0:
+        current_bps = float(nic_bps)
+        current_pps = float(nic_pps)
+    else:
+        latest_bytes_pred = db.scalar(
+            select(models.Prediction.prediction)
+            .where(models.Prediction.target == "bytes_per_second")
+            .order_by(models.Prediction.timestamp.desc())
+            .limit(1)
+        )
+        latest_pkts_pred = db.scalar(
+            select(models.Prediction.prediction)
+            .where(models.Prediction.target == "packets_per_second")
+            .order_by(models.Prediction.timestamp.desc())
+            .limit(1)
+        )
+        current_bps = float(latest_bytes_pred or 1450000.0)
+        current_pps = float(latest_pkts_pred or 2400.0)
 
     # 5. System Status determination
     if active_threats > 5 or risk_cat == RiskCategory.CRITICAL:
