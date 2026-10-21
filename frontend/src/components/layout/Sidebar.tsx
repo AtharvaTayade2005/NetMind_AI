@@ -7,10 +7,12 @@ import {
   faTriangleExclamation,
   faChartLine,
   faBrain,
+  faSliders,
 } from '@fortawesome/free-solid-svg-icons';
 
 export type NavTab =
   | 'overview'
+  | 'simulator'
   | 'flows'
   | 'threats'
   | 'anomalies'
@@ -41,6 +43,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'overview' as NavTab,
       label: 'System Overview & Health',
       icon: faNetworkWired,
+    },
+    {
+      id: 'simulator' as NavTab,
+      label: 'Dynamic Network Simulator',
+      icon: faSliders,
+      badge: 'PHASE 1',
+      badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     },
     {
       id: 'flows' as NavTab,

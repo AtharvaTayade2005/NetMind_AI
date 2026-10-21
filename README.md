@@ -6,7 +6,7 @@
 [![Pydantic v2](https://img.shields.io/badge/Pydantic-v2+-e92063.svg)](https://docs.pydantic.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose%20v2-2496ED.svg)](https://www.docker.com/)
 [![React 18](https://img.shields.io/badge/React-18.3+-61DAFB.svg)](https://react.dev/)
-[![Tests](https://img.shields.io/badge/tests-33%20passed-green.svg)](#6-automated-validation--testing-suite)
+[![Tests](https://img.shields.io/badge/tests-50%20passed-green.svg)](#6-automated-validation--testing-suite)
 [![Architecture Docs](https://img.shields.io/badge/Docs-workflow.md-purple.svg)](workflow.md)
 [![Telemetry Deep Dive](https://img.shields.io/badge/Docs-TELEMETRY__PIPELINE.md-blue.svg)](TELEMETRY_PIPELINE.md)
 
@@ -283,29 +283,118 @@ The synthetic generator safely generates traffic bound strictly to loopback (`12
 
 ---
 
-## 6. Automated Validation & Testing Suite
+## 6. Phase 1: Dynamic Network Simulator & Deterministic Routing
 
-Execute the comprehensive automated test suite covering all 5 architectural phases:
+NetMind AI includes a dynamic, simulation-first network environment representing a network of routers and links modeled as an in-memory graph via **NetworkX**.
+
+### Architecture Overview
+
+```
+                      ┌───────────────────────────────┐
+                      │    R1: Edge Ingress Router    │
+                      └───────┬───────────────┬───────┘
+                              │               │
+       Primary Path (5ms, 1G) │               │ Backup Path (15ms, 500M)
+                              ▼               ▼
+                  ┌───────────────┐       ┌───────────────┐
+                  │ R2: Core (A)  │◄─────►│ R3: Core (B)  │  Cross-Connect (10ms, 500M)
+                  └───────┬───────┘       └───────┬───────┘
+                          │                       │
+   Primary Path (5ms, 1G) │                       │ Backup Path (15ms, 500M)
+                          ▼                       ▼
+                      ┌───────────────────────────────┐
+                      │    R4: Gateway Egress Router  │
+                      └───────────────────────────────┘
+```
+
+- **Candidate Paths:**
+  - **Primary Route:** `R1 → R2 → R4` (Cost ~ 11.0, 10ms base latency)
+  - **Backup Route:** `R1 → R3 → R4` (Cost ~ 31.0, 30ms base latency)
+- **Deterministic Multi-Metric Cost Formula:**
+  $$\text{Cost}(e) = W_{\text{lat}} \cdot \text{Latency}(e) + W_{\text{loss}} \cdot \text{Loss}(e) + W_{\text{util}} \cdot \frac{\text{Utilization}(e)}{10.0}$$
+  Tie-breaking is strictly resolved by `(total_cost, hop_count, path_tuple)`.
+- **Dynamic Physics-Consistent Traffic:**
+  Derives throughput, utilization, queueing delay, and packet loss from bottleneck capacities. When offered traffic exceeds bottleneck bandwidth, queueing latency spikes and tail-drop packet loss occurs.
+- **Safety Guarantee:**
+  The simulator operates strictly over in-memory graph structures. It **never** invokes OS routing commands or mutates host firewall or socket state.
+
+### Supported Fault Scenarios
+
+| Scenario Type | Endpoint | Description |
+|---|---|---|
+| **Link Failure** | `POST /api/simulation/scenarios/link-failure` | Marks target link `down`, capacity to 0; triggers deterministic failover to backup route |
+| **Link Recovery** | `POST /api/simulation/scenarios/link-recovery` | Restores failed link to `up` and operational capacity |
+| **Congestion** | `POST /api/simulation/scenarios/congestion` | Drives utilization to 95%+, elevating queueing delay and tail-drop loss |
+| **Latency Spike** | `POST /api/simulation/scenarios/latency-spike` | Injects bounded latency increase on selected link |
+| **Traffic Surge** | `POST /api/simulation/scenarios/traffic-surge` | Global multiplier (e.g. 3x) on offered network demand |
+| **Clear All** | `POST /api/simulation/scenarios/clear` | Reverts all fault scenarios to baseline |
+
+### REST API Reference
+
+- `GET /api/simulation/status` — State (`stopped`, `running`, `paused`), tick count, clock, active route
+- `POST /api/simulation/start` — Start background simulation loop
+- `POST /api/simulation/pause` — Pause clock and traffic advancement
+- `POST /api/simulation/resume` — Resume paused simulator
+- `POST /api/simulation/stop` — Stop simulation worker
+- `POST /api/simulation/reset` — Revert topology, routing, and traffic to clean baseline
+- `POST /api/simulation/tick` — Advance 1 tick deterministically (unit testing / single-step inspection)
+- `GET /api/topology` — Routers, links, bandwidths, latencies, capacities, and statuses
+- `GET /api/simulation/metrics` — Instantaneous aggregate telemetry and route details
+- `GET /api/simulation/telemetry` — Sliding-window time-series telemetry history
+- `GET /api/simulation/routes?source=R1&destination=R4` — Operational path discovery and cost ranking
+
+### Manual End-to-End Test Procedure
+
+1. **Start the backend and frontend servers**:
+   ```bash
+   # Terminal 1: Backend
+   python src/backend/main.py
+   # Terminal 2: Frontend
+   cd frontend && npm run dev
+   ```
+2. **Open the Simulator Dashboard**:
+   Navigate to `http://localhost:3000` and click the **Dynamic Network Simulator** tab on the sidebar.
+3. **Inspect Baseline State**:
+   Notice Primary Route is `R1 → R2 → R4` (green active status). All 5 links are `UP`.
+4. **Start the Simulator**:
+   Click **Start** (or **Step Tick**). Telemetry metrics start streaming with ~120 Mbps throughput and ~10ms latency.
+5. **Inject Primary Link Failure**:
+   Under **Quick Fault Action**, click **Fail** on link `R1-R2` (or click **Fail R1-R2** in the Scenarios panel).
+6. **Verify Automatic Failover**:
+   - Link `R1-R2` status turns `DOWN` (rose badge) with Available Capacity `0.0 Mbps`.
+   - The routing service deterministically identifies and selects Backup Path `R1 → R3 → R4`.
+   - Latency updates to ~30ms reflecting the higher-latency backup links.
+7. **Recover Link**:
+   Click **Recover** on link `R1-R2`.
+   - Link status restores to `UP`.
+   - Routing service returns `R1 → R2 → R4` as the lowest-cost primary route.
+
+---
+
+## 7. Automated Validation & Testing Suite
+
+Execute the comprehensive automated test suite covering all architectural phases:
 
 ```bash
 pytest -v
 ```
 
-All 33 tests execute and pass:
+All 50 tests execute and pass:
 ```text
 netmind/tests/test_backend.py (12 passed)      # ORM, Repositories, REST API, Decision Engine
 netmind/tests/test_ingestion.py (9 passed)     # Zeek TSV/JSON, Suricata EVE, Feature Engineering
 netmind/tests/test_ml.py (7 passed)            # Isolation Forest, XGBoost, TreeSHAP, Forecaster
 netmind/tests/test_integration.py (5 passed)   # Traffic Generator, Worker Tailer, Offset Tracking
+netmind/tests/test_simulation.py (17 passed)   # Phase 1: Topology, Routing, Scenarios, Engine, API
 
-======================= 33 passed, 1 warning in 5.17s =======================
+======================= 50 passed in 11.09s =======================
 ```
 
 Verify the frontend production bundle:
 ```bash
 cd frontend && npm run build
 ```
-Built in 3.67s (`dist/assets/index-B4Zkzt99.js`, `dist/assets/index-DKRFL3Nf.css`).
+Built cleanly with zero TypeScript or asset bundling errors.
 
 ---
 

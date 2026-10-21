@@ -8,6 +8,7 @@ import { AnomaliesView } from './pages/AnomaliesView';
 import { TrafficForecastView } from './pages/TrafficForecastView';
 import { RecommendationsView } from './pages/RecommendationsView';
 import { ThreatDetailModal } from './pages/ThreatDetailModal';
+import { NetworkSimulatorView } from './pages/NetworkSimulatorView';
 
 import {
   MOCK_ALERTS,
@@ -218,6 +219,8 @@ export function App() {
                 onNavigateTab={setActiveTab}
               />
             )}
+
+            {activeTab === 'simulator' && <NetworkSimulatorView />}
 
             {activeTab === 'flows' && <FlowTelemetryView flows={flows} />}
 

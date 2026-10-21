@@ -171,3 +171,122 @@ export interface RecommendationAction {
   status: ActionStatus;
   timestamp: string;
 }
+
+/**
+ * Phase 1 — Network Simulator Domain Types
+ */
+export type SimulationState = 'stopped' | 'running' | 'paused';
+
+export interface SimulationStatus {
+  state: SimulationState;
+  tick_count: number;
+  simulation_time: string;
+  start_wall_time?: string;
+  is_route_available: boolean;
+  primary_path: string[];
+  backup_path: string[];
+  active_scenarios_count: number;
+  latest_traffic_rate_mbps: number;
+  latest_latency_ms: number;
+  latest_utilization_pct: number;
+  latest_packet_loss_pct: number;
+  source_mode: 'simulated';
+}
+
+export interface SimulatedRouter {
+  node_id: string;
+  display_name: string;
+  status: 'up' | 'down';
+  router_type: string;
+  location: string;
+  metadata?: Record<string, any>;
+}
+
+export interface SimulatedLink {
+  link_id: string;
+  source: string;
+  target: string;
+  bandwidth_mbps: number;
+  latency_ms: number;
+  packet_loss_pct: number;
+  utilization_pct: number;
+  status: 'up' | 'down';
+  available_capacity_mbps: number;
+  last_updated: string;
+}
+
+export interface SimulatedTopology {
+  node_count: number;
+  link_count: number;
+  nodes: SimulatedRouter[];
+  links: SimulatedLink[];
+  timestamp: string;
+}
+
+export interface SimulationPathOption {
+  path: string[];
+  total_cost: number;
+  total_latency_ms: number;
+  bottleneck_capacity_mbps: number;
+  avg_utilization_pct: number;
+  max_packet_loss_pct: number;
+  hops: number;
+  link_ids: string[];
+}
+
+export interface SimulationRouteDetail {
+  source: string;
+  destination: string;
+  is_route_available: boolean;
+  primary_path?: SimulationPathOption;
+  backup_path?: SimulationPathOption;
+  all_valid_paths: SimulationPathOption[];
+  error_message?: string;
+  timestamp: string;
+}
+
+export interface SimulationTelemetrySample {
+  timestamp: string;
+  source: string;
+  destination: string;
+  active_route: string[];
+  traffic_rate_mbps: number;
+  bandwidth_utilization_pct: number;
+  latency_ms: number;
+  packet_loss_pct: number;
+  link_status: Record<string, string>;
+  available_capacity_mbps: number;
+  scenario_identifier?: string;
+  source_mode: 'simulated';
+  tick: number;
+}
+
+export interface SimulationScenario {
+  scenario_id: string;
+  scenario_type: string;
+  affected_resource: string;
+  status: string;
+  parameters: Record<string, any>;
+  description: string;
+  start_time: string;
+  end_time?: string;
+  remaining_ticks?: number;
+}
+
+export interface SimulationMetrics {
+  simulation_time: string;
+  state: SimulationState;
+  tick_count: number;
+  aggregate: {
+    traffic_rate_mbps: number;
+    latency_ms: number;
+    utilization_pct: number;
+    packet_loss_pct: number;
+    available_capacity_mbps: number;
+    active_route: string[];
+    is_route_available: boolean;
+  };
+  links: SimulatedLink[];
+  routes: SimulationRouteDetail;
+  source_mode: 'simulated';
+}

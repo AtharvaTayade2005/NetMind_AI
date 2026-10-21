@@ -31,12 +31,14 @@ from netmind.src.backend.routers import (
     inference,
     predictions,
     recommendations,
+    simulation,
     status,
     telemetry,
     threats,
 )
 from netmind.src.backend.routers.inference import ModelManager
 from netmind.src.ingestion.nic_sniffer import LiveNICCapture
+from netmind.src.simulation.engine import get_simulation_engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("netmind.api")
@@ -158,6 +160,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     logger.info("Shutting down NetMind AI Backend Service...")
+    get_simulation_engine().stop()
     nic_capture.stop()
     close_db()
 
@@ -167,7 +170,7 @@ app = FastAPI(
     title="NetMind AI - Network Monitoring & Decision Support System",
     description=(
         "Production REST API for real-time network telemetry scoring, intrusion detection, "
-        "time-series traffic forecasting, and explainable AI (TreeSHAP)."
+        "time-series traffic forecasting, explainable AI (TreeSHAP), and dynamic network simulation."
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -189,6 +192,7 @@ app.include_router(predictions.router)
 app.include_router(recommendations.router)
 app.include_router(inference.router)
 app.include_router(telemetry.router)
+app.include_router(simulation.router)
 
 
 @app.get("/health", tags=["Health"])

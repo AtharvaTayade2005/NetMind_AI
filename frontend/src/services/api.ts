@@ -14,6 +14,12 @@ import {
   TelemetryDataPoint,
   AttackCategory,
   Severity,
+  SimulationStatus,
+  SimulatedTopology,
+  SimulationMetrics,
+  SimulationTelemetrySample,
+  SimulationScenario,
+  SimulationRouteDetail,
 } from '../types';
 
 import {
@@ -403,5 +409,215 @@ export const apiService = {
       }
     }
     await sleep(40);
+  },
+
+  // ============================================================================
+  // Network Simulator Endpoints (Phase 1)
+  // ============================================================================
+
+  async getSimulationStatus(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/status');
+    if (!res.ok) {
+      throw new Error(`Failed to fetch simulation status: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async startSimulation(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/start', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to start simulation: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async pauseSimulation(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/pause', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to pause simulation: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async resumeSimulation(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/resume', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to resume simulation: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async stopSimulation(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/stop', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to stop simulation: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async resetSimulation(): Promise<SimulationStatus> {
+    const res = await fetch('/api/simulation/reset', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to reset simulation: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async tickSimulation(timeDeltaSeconds: number = 1.0): Promise<SimulationTelemetrySample> {
+    const res = await fetch(`/api/simulation/tick?time_delta_seconds=${timeDeltaSeconds}`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to advance simulation tick: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async getTopology(): Promise<SimulatedTopology> {
+    const res = await fetch('/api/topology');
+    if (!res.ok) {
+      throw new Error(`Failed to fetch topology: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async getSimulationMetrics(): Promise<SimulationMetrics> {
+    const res = await fetch('/api/simulation/metrics');
+    if (!res.ok) {
+      throw new Error(`Failed to fetch simulation metrics: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async getSimulationTelemetry(limit: number = 30): Promise<SimulationTelemetrySample[]> {
+    const res = await fetch(`/api/simulation/telemetry?limit=${limit}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch simulation telemetry: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async getSimulationRoutes(
+    source: string = 'R1',
+    destination: string = 'R4'
+  ): Promise<SimulationRouteDetail> {
+    const res = await fetch(
+      `/api/simulation/routes?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`
+    );
+    if (!res.ok) {
+      throw new Error(`Failed to fetch routes: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async injectLinkFailure(
+    source: string,
+    target: string,
+    durationTicks?: number
+  ): Promise<SimulationScenario> {
+    const res = await fetch('/api/simulation/scenarios/link-failure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, target, duration_ticks: durationTicks }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Failed to inject link failure');
+    }
+    return res.json();
+  },
+
+  async injectLinkRecovery(source: string, target: string): Promise<SimulationScenario> {
+    const res = await fetch('/api/simulation/scenarios/link-recovery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, target }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Failed to recover link');
+    }
+    return res.json();
+  },
+
+  async injectCongestion(
+    source: string,
+    target: string,
+    utilizationPct: number = 95.0,
+    packetLossPct: number = 8.5,
+    latencyIncreaseMs: number = 40.0,
+    durationTicks?: number
+  ): Promise<SimulationScenario> {
+    const res = await fetch('/api/simulation/scenarios/congestion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source,
+        target,
+        utilization_pct: utilizationPct,
+        packet_loss_pct: packetLossPct,
+        latency_increase_ms: latencyIncreaseMs,
+        duration_ticks: durationTicks,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Failed to inject congestion');
+    }
+    return res.json();
+  },
+
+  async injectLatencySpike(
+    source: string,
+    target: string,
+    additionalLatencyMs: number = 80.0,
+    durationTicks?: number
+  ): Promise<SimulationScenario> {
+    const res = await fetch('/api/simulation/scenarios/latency-spike', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source,
+        target,
+        additional_latency_ms: additionalLatencyMs,
+        duration_ticks: durationTicks,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Failed to inject latency spike');
+    }
+    return res.json();
+  },
+
+  async injectTrafficSurge(
+    multiplier: number = 3.0,
+    durationTicks?: number
+  ): Promise<SimulationScenario> {
+    const res = await fetch('/api/simulation/scenarios/traffic-surge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ multiplier, duration_ticks: durationTicks }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'Failed to inject traffic surge');
+    }
+    return res.json();
+  },
+
+  async getSimulationScenarios(includeHistory: boolean = false): Promise<SimulationScenario[]> {
+    const res = await fetch(`/api/simulation/scenarios?include_history=${includeHistory}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch scenarios: ${res.statusText}`);
+    }
+    return res.json();
+  },
+
+  async clearAllSimulationScenarios(): Promise<void> {
+    const res = await fetch('/api/simulation/scenarios/clear', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`Failed to clear scenarios: ${res.statusText}`);
+    }
   },
 };
