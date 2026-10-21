@@ -1,295 +1,354 @@
-# NetMind AI — Complete Feature, Domain & Codebase Line Reference
+# NetMind AI — Monitoring & Decision Modules Engineering Reference
 
-> **Document Purpose:** An exhaustive, line-by-line engineering reference documenting every feature, file, function, algorithm, mathematical formulation, and operational responsibility in the NetMind AI platform.
+> **Document Purpose:** An exhaustive, line-by-line engineering and operational reference structured directly according to the **6 Monitoring & Decision Modules** in the NetMind AI Security Operations Center (SOC) console. This document specifies the exact domain, file paths, line number ranges, execution pipelines, data transformations, mathematical formulations, and operational responsibilities of each module across the full stack.
 
 ---
 
-## 1. Master System & Tri-Domain Matrix
+## Master Architecture & Module Index
 
 ```mermaid
 graph TD
-    subgraph "Domain 1: Cybersecurity & SOC Operations"
-        D1_1["Hardware NIC & Packet Sniffer<br/>(nic_sniffer.py)"]
-        D1_2["Sensor Normalization<br/>(zeek_parser.py & suricata_parser.py)"]
-        D1_3["TCP State Machine & 5-Tuples<br/>(SF, S0, REJ, RSTO)"]
-        D1_4["NIST SP 800-61 Playbooks<br/>(decision_engine.py)"]
+    subgraph "Core Data Ingestion & OS Telemetry"
+        NIC["Hardware NIC & Kernel Sockets<br/>(nic_sniffer.py)"]
+        ZEEK["Zeek Conn TSV/NDJSON Parser<br/>(zeek_parser.py)"]
+        SURI["Suricata EVE Alert Streamer<br/>(suricata_parser.py)"]
     end
 
-    subgraph "Domain 2: Data Science & Telemetry Engineering"
-        D2_1["IP-Memorization Avoidance<br/>(engineer.py)"]
-        D2_2["Heavy-Tail RobustScaler<br/>(dataset.py)"]
-        D2_3["Autoregressive Lag Windows<br/>(traffic_predictor.py)"]
-        D2_4["Rotation-Resilient Offsets<br/>(log_tailer.py)"]
+    subgraph "Feature Engineering & Scaling"
+        ENG["30-Dim Feature Extractor<br/>(engineer.py)"]
+        SCALE["Heavy-Tail RobustScaler<br/>(dataset.py)"]
     end
 
-    subgraph "Domain 3: Artificial Intelligence & Explainability (XAI)"
-        D3_1["Unsupervised Isolation Forest<br/>(anomaly_detector.py)"]
-        D3_2["Supervised Multiclass XGBoost<br/>(attack_classifier.py)"]
-        D3_3["Autoregressive XGBoost Regressor<br/>(traffic_predictor.py)"]
-        D3_4["Polynomial TreeSHAP Explainer<br/>(explainer.py)"]
+    subgraph "AI Inference & Reasoning Engines"
+        IF["Isolation Forest (Unsupervised)<br/>(anomaly_detector.py)"]
+        XGB_C["Multiclass XGBoost (Supervised)<br/>(attack_classifier.py)"]
+        XGB_R["Autoregressive XGBoost Regressor<br/>(traffic_predictor.py)"]
+        SHAP["Polynomial TreeSHAP Explainer<br/>(explainer.py)"]
     end
 
-    D1_1 --> D1_2
-    D1_2 --> D1_3
-    D1_3 --> D2_1
-    D2_1 --> D2_2
-    D2_2 --> D3_1
-    D2_2 --> D3_2
-    D2_3 --> D3_3
-    D3_2 --> D3_4
-    D3_1 --> D1_4
-    D3_2 --> D1_4
+    subgraph "Backend Services & Decision Engine"
+        DB["SQLAlchemy 2.0 ORM & SQLite/Postgres<br/>(database.py, models.py)"]
+        DEC["NIST SP 800-61 Decision Engine<br/>(decision_engine.py)"]
+        API["FastAPI Modular REST Routers<br/>(routers/)"]
+    end
+
+    subgraph "Frontend UI: Monitoring & Decision Modules"
+        M1["Module 1: System Overview & Health<br/>(Overview.tsx)"]
+        M2["Module 2: Network Flow Telemetry<br/>(FlowTelemetryView.tsx)"]
+        M3["Module 3: Classified Attack Detections<br/>(ClassifiedAttacksView.tsx + ThreatDetailModal.tsx)"]
+        M4["Module 4: Unsupervised Anomalies<br/>(AnomaliesView.tsx)"]
+        M5["Module 5: Performance & Traffic Forecast<br/>(TrafficForecastView.tsx)"]
+        M6["Module 6: Decision Engine & Recommendations<br/>(RecommendationsView.tsx)"]
+    end
+
+    NIC --> M1
+    NIC --> M2
+    ZEEK --> ENG
+    SURI --> ENG
+    ENG --> SCALE
+    SCALE --> IF
+    SCALE --> XGB_C
+    NIC --> XGB_R
+    XGB_C --> SHAP
+    IF --> DEC
+    XGB_C --> DEC
+    XGB_R --> DEC
+    DEC --> DB
+    DB --> API
+    API --> M1
+    API --> M2
+    API --> M3
+    API --> M4
+    API --> M5
+    API --> M6
 ```
 
-| Phase | Module Name | Domain | Primary Source Files | Primary Operational Output |
-| :---: | :--- | :--- | :--- | :--- |
-| **Phase 1** | **Telemetry Ingestion & Sniffing** | Cybersecurity & Data Science | [`nic_sniffer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py), [`zeek_parser.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py), [`suricata_parser.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/suricata_parser.py) | Normalized 5-tuple sockets, hardware packet rates, and stream generators. |
-| **Phase 2** | **Feature Engineering & Scaling** | Data Science & Cybersecurity | [`engineer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py), [`dataset.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py) | 30-dim non-memorizing feature vector, median/IQR robust scaled matrices. |
-| **Phase 3** | **Machine Learning & TreeSHAP** | Artificial Intelligence (XAI) | [`anomaly_detector.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py), [`attack_classifier.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py), [`traffic_predictor.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py), [`explainer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py) | Zero-day anomaly scores, XGBoost class probabilities, throughput forecast, Shapley values. |
-| **Phase 4** | **Persistence & Decision Engine** | Cybersecurity & Data Science | [`database.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/database.py), [`models.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py), [`decision_engine.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py), [`main.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/main.py) | 0–100 composite host risk scores, NIST containment playbooks, REST endpoints. |
-| **Phase 5** | **Worker & Testing Lab** | Systems & Cybersecurity | [`log_tailer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/worker/log_tailer.py), [`traffic_generator.py`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py) | Checkpointed file tailing daemon, reproducible loopback synthetic traffic scenarios. |
-| **Phase 6** | **High-Density SOC Portal** | Systems & Human-in-the-Loop | [`App.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx), [`Overview.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx), [`ThreatDetailModal.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx), [`api.ts`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts) | Real-time live Recharts graph, 4-step explainability modal, 1-click containment execution. |
+---
+
+## Quick Navigation: The 6 Monitoring & Decision Modules
+
+| # | Sidebar Navigation Item | Primary Domain | Frontend Component | Core Engine / Processing File | REST Endpoint |
+|---|---|---|---|---|---|
+| **1** | [**System Overview & Health**](#module-1-system-overview--health) | Systems Engineering & Cybersecurity | [`Overview.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx) | [`nic_sniffer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py), [`decision_engine.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py) | `/api/telemetry/live`, `/api/network/status` |
+| **2** | [**Network Flow Telemetry**](#module-2-network-flow-telemetry) | Cybersecurity & Data Science | [`FlowTelemetryView.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/FlowTelemetryView.tsx) | [`nic_sniffer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py), [`zeek_parser.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py) | `/api/telemetry/flows`, `/api/flows` |
+| **3** | [**Classified Attack Detections**](#module-3-classified-attack-detections) | Artificial Intelligence (Supervised) & XAI | [`ClassifiedAttacksView.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ClassifiedAttacksView.tsx), [`ThreatDetailModal.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx) | [`attack_classifier.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py), [`explainer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py) | `/api/threats`, `/api/predict/attack`, `/api/explain/shap` |
+| **4** | [**Unsupervised Anomalies**](#module-4-unsupervised-anomalies) | Artificial Intelligence (Unsupervised) & Data Science | [`AnomaliesView.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/AnomaliesView.tsx) | [`anomaly_detector.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py), [`dataset.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py) | `/api/predict/anomaly`, `/api/threats` |
+| **5** | [**Performance & Traffic Forecast**](#module-5-performance--traffic-forecast) | Data Science & AI (Regression Forecasting) | [`TrafficForecastView.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/TrafficForecastView.tsx) | [`traffic_predictor.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py) | `/api/predict/traffic` |
+| **6** | [**Decision Engine & Recommendations**](#module-6-decision-engine--recommendations) | Cybersecurity & Systems Engineering (IR) | [`RecommendationsView.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/RecommendationsView.tsx) | [`decision_engine.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py), [`models.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py) | `/api/recommendations`, `/api/recommendations/{id}/review` |
 
 ---
 
-## 2. Ingestion & Packet Sniffing Layer (`src/ingestion/`)
+## Module 1: System Overview & Health
 
-### Feature 1.1: Live Hardware NIC Packet & Byte Capture
-* **File:** [`netmind/src/ingestion/nic_sniffer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L38-L177)
-* **Domain:** **Cybersecurity & Data Science**
-* **Lines of Interest:**
-  * [`nic_sniffer.py:L62-L80`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L62-L80): `_discover_interfaces()` — Queries `psutil.net_if_stats()` and `psutil.net_if_addrs()` to enumerate physical and virtual adapters (`Wi-Fi`, `Ethernet`, `Loopback`), reporting link speed (`Mbps`), IP address, and up/down status.
-  * [`nic_sniffer.py:L82-L89`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L82-L89): `_choose_default_interface()` — Selects the primary active Internet adapter (prioritizing Wi-Fi/Ethernet over loopback).
-  * [`nic_sniffer.py:L123-L177`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L123-L177): `_sampling_loop()` — High-frequency background thread sampling delta I/O counters every 1.0 second:
-    $$\text{inbound\_mbps} = \frac{\Delta \text{bytes\_recv} \times 8}{1{,}000{,}000 \times \Delta t}, \quad \text{inbound\_pps} = \frac{\Delta \text{packets\_recv}}{\Delta t}$$
-  * [`nic_sniffer.py:L196-L257`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L196-L257): `get_live_flows()` — Inspects kernel socket tables (`psutil.net_connections(kind="inet")`) to extract 5-tuples (`src_ip:port -> dst_ip:port`), protocol, service name, and TCP states.
+### 1. High-Level & Operational Purpose
+The **System Overview & Health** view is the primary executive dashboard for SOC tier-1 analysts and network operations center (NOC) engineers. It provides situational awareness through four synchronized KPI indicators, a real-time dual-line Recharts throughput telemetry graph (Inbound vs Outbound Mbps), an active high-priority incident triage queue, and a live raw socket connection feed.
 
----
+### 2. Domain Classification
+* **Primary Domain:** **Systems Engineering & Cybersecurity Operations**
+* **Supporting Domain:** **Data Science (Time-Series Aggregation)**
+* **Why this domain?** It monitors the operational resilience of network endpoints, tracks kernel interface I/O counters, computes macroscopic network health metrics, and visualizes live traffic velocity.
 
-### Feature 1.2: Zeek Connection Log TSV & NDJSON Parsing
-* **File:** [`netmind/src/ingestion/zeek_parser.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L48-L287)
-* **Domain:** **Cybersecurity & Data Science**
-* **Lines of Interest:**
-  * [`zeek_parser.py:L22-L28`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L22-L28): `ZEEK_CANONICAL_COLUMNS` — Standardizes Zeek field names (`id.orig_h` $\rightarrow$ `src_ip`, `id.resp_h` $\rightarrow$ `dst_ip`, `id.orig_p` $\rightarrow$ `src_port`, `id.resp_p` $\rightarrow$ `dst_port`).
-  * [`zeek_parser.py:L92-L135`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L92-L135): `parse_tsv()` — Dynamically parses Zeek `#fields` and `#types` metadata headers.
-  * [`zeek_parser.py:L185-L215`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L185-L215): `_sanitize_values()` — Sanitizes missing values (`-`, `(empty)`, `null`) into typed Python nulls (`np.nan`), preventing numerical parser corruption.
-  * [`zeek_parser.py:L240-L285`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L240-L285): `_post_process()` — Enforces schema typing across duration, byte rates, packet counts, and connection states (`SF`, `S0`, `REJ`, `RSTO`).
+### 3. Source Code Files & Exact Line References
+* **Frontend View:**
+  * [`frontend/src/pages/Overview.tsx:L42-L416`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L42-L416)
+    * Lines 87–180: Four KPI metric cards (Monitored Endpoints, Real-Time PPS, Composite Risk Gauge, Flagged Incidents).
+    * Lines 185–250: Recharts `ResponsiveContainer` rendering Inbound (blue `#2563eb`) and Outbound (slate `#475569`) Mbps curves.
+    * Lines 255–330: Recent Security Incidents queue with one-click **"Inspect"** button binding to the TreeSHAP decision modal.
+    * Lines 335–410: Live Telemetry Stream table showing raw normalized 5-tuples.
+* **Frontend State & Polling Engine:**
+  * [`frontend/src/App.tsx:L50-L95`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L50-L95): 1.2-second interval `Promise.all` polling engine fetching live telemetry, status, socket flows, alerts, and recommendations.
+  * [`frontend/src/services/api.ts:L65-L140`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L65-L140): `getLiveTelemetry()` and `getNetworkStatus()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/telemetry.py:L19-L40`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/telemetry.py#L19-L40): `GET /api/telemetry/live`, `GET /api/telemetry/interfaces`, `POST /api/telemetry/interface`.
+  * [`netmind/src/backend/routers/status.py:L21-L87`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/status.py#L21-L87): `GET /api/network/status`.
+* **Hardware Ingestion Engine:**
+  * [`netmind/src/ingestion/nic_sniffer.py:L38-L177`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L38-L177): `HardwareNICSniffer` thread polling `psutil.net_io_counters(pernic=True)`.
+* **Persistence & ORM:**
+  * [`netmind/src/backend/models.py:L40-L60`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L40-L60): `Host` ORM table tracking host IP addresses, hostnames, risk scores, and quarantine status.
 
----
-
-### Feature 1.3: Suricata EVE Alert Streaming Generator
-* **File:** [`netmind/src/ingestion/suricata_parser.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/suricata_parser.py#L40-L195)
-* **Domain:** **Cybersecurity**
-* **Lines of Interest:**
-  * [`suricata_parser.py:L60-L110`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/suricata_parser.py#L60-L110): `stream_alerts()` — Python generator reading Suricata `eve.json` NDJSON alerts line-by-line with $O(1)$ memory consumption.
-  * [`suricata_parser.py:L120-L165`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/suricata_parser.py#L120-L165): `normalize_record()` — Extracts signature IDs (`alert.signature_id`), Emerging Threats rule descriptions, GIDs, and maps Suricata severity (1–4) to NetMind standards (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`).
-
----
-
-## 3. Feature Engineering & Scaling Layer (`src/features/` & `src/ml/`)
-
-### Feature 2.1: 30-Dimensional Behavioral Vector & Lab-Memorization Avoidance
-* **File:** [`netmind/src/features/engineer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L53-L379)
-* **Domain:** **Data Science & Cybersecurity**
-* **Lines of Interest:**
-  * [`engineer.py:L35-L50`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L35-L50): `STATIC_IDENTIFIER_COLUMNS` — Explicitly defines static identifiers (`src_ip`, `dst_ip`, `uid`, `flow_id`, `ts`) stripped from ML training matrices to prevent models from memorizing ephemeral lab IP addresses.
-  * [`engineer.py:L202-L218`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L202-L218): Derives flow rates:
-    $$\text{bytes\_per\_second} = \frac{\text{orig\_bytes} + \text{resp\_bytes}}{\text{duration} + 10^{-6}}, \quad \text{packets\_per\_second} = \frac{\text{orig\_pkts} + \text{resp\_pkts}}{\text{duration} + 10^{-6}}$$
-  * [`engineer.py:L220-L245`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L220-L245): TCP flag analysis parsing Zeek `history` strings into individual flag frequencies (SYN `S/s`, ACK `A/a`, FIN `F/f`, RST `R/r`) and computing the asymmetry ratio:
-    $$\text{syn\_ack\_ratio} = \frac{\text{syn\_count}}{\text{ack\_count} + 1}$$
-  * [`engineer.py:L247-L270`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L247-L270): Topological non-memorizing features:
-    * `is_src_private_ip`, `is_dst_private_ip` using `ipaddress.ip_address(ip).is_private`
-    * `is_dst_well_known_port` ($\text{port} \le 1024$)
-    * `is_src_ephemeral_port` ($\text{port} \ge 49152$)
-  * [`engineer.py:L272-L315`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L272-L315): Host-level aggregation features (target IP diversity, distinct port count, failed connection ratios).
+### 4. Step-by-Step Processing & Dataflow Pipeline
+1. **NIC Discovery:** On startup, [`nic_sniffer.py:L62-L89`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L62-L89) inspects all physical and virtual interfaces using `psutil.net_if_stats()` and `psutil.net_if_addrs()`. It selects the default active interface with an IPv4 address.
+2. **Delta Sampling Loop:** Every 1.0 second in a daemon background thread, [`nic_sniffer.py:L123-L177`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L123-L177) records byte and packet deltas:
+   $$\Delta \text{bytes} = \text{bytes}_t - \text{bytes}_{t-1}, \quad \Delta \text{packets} = \text{packets}_t - \text{packets}_{t-1}, \quad \Delta t = \text{time}_t - \text{time}_{t-1}$$
+   $$\text{Throughput (Mbps)} = \frac{\Delta \text{bytes} \times 8}{1{,}000{,}000 \times \Delta t}, \quad \text{Rate (pps)} = \frac{\Delta \text{packets}}{\Delta t}$$
+3. **Sliding Ring Buffer:** The metrics are appended to a thread-safe `deque(maxlen=40)`.
+4. **REST Delivery:** `GET /api/telemetry/live` returns the 40 sliding data points formatted as `{timestamp, inbound_mbps, outbound_mbps, inbound_pps, outbound_pps}`.
+5. **Frontend Rendering:** `App.tsx` polls `/api/telemetry/live` every 1.2s and updates `telemetrySeries`. `Overview.tsx` feeds this array directly into Recharts `<LineChart data={telemetrySeries}>` for smooth real-time animation.
 
 ---
 
-### Feature 2.2: Heavy-Tail Resistant Robust Scaling & Partitioning
-* **File:** [`netmind/src/ml/dataset.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py#L40-L250)
-* **Domain:** **Data Science**
-* **Lines of Interest:**
-  * [`dataset.py:L55-L95`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py#L55-L95): `NetMindPreprocessor` — Implements `SimpleImputer(strategy="median")` combined with `RobustScaler`:
-    $$x_{\text{scaled}} = \frac{x - \text{median}(X)}{Q_3(X) - Q_1(X)}$$
-    **Data Science Justification:** Network byte and packet rates follow extreme Pareto power-law distributions. A single volumetric DoS burst of 50,000 pps would skew standard deviation (Z-score) scaling to near zero for benign traffic; using median and IQR maintains robust scaling bounds.
-  * [`dataset.py:L140-L185`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py#L140-L185): `create_stratified_partitions()` — Generates train, validation, and test splits while strictly preserving rare cyber attack class balances (`Brute Force`, `Web Attack`).
-  * [`dataset.py:L190-L220`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py#L190-L220): `save()` & `load()` — Persists preprocessor pipeline artifacts into `models/preprocessor.joblib`.
+## Module 2: Network Flow Telemetry
+
+### 1. High-Level & Operational Purpose
+The **Network Flow Telemetry** view provides an unfiltered, transparent window into the communication fabric of the monitored network. It decodes bidirectional Layer 3/4 session flows into canonical 5-tuples (`src_ip`, `src_port`, `dst_ip`, `dst_port`, `protocol`), resolves application service ports (`HTTP`, `HTTPS`, `DNS`, `SSH`), analyzes TCP state machines (`SF`, `S0`, `REJ`, `RSTO`), and highlights anomalous flows with amber row accents.
+
+### 2. Domain Classification
+* **Primary Domain:** **Cybersecurity & Data Science**
+* **Supporting Domain:** **Systems Engineering (Kernel Sockets)**
+* **Why this domain?** It is grounded in RFC 793 TCP state transitions, Zeek canonical logging taxonomy, and packet aggregation for behavioral traffic modeling.
+
+### 3. Source Code Files & Exact Line References
+* **Frontend View:**
+  * [`frontend/src/pages/FlowTelemetryView.tsx:L1-L143`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/FlowTelemetryView.tsx#L1-L143)
+    * Lines 12–23: Multi-dimensional filter (search by IP substring, service name, or protocol `TCP`/`UDP`/`ICMP`).
+    * Lines 63–133: Tabular data grid with timestamp, source socket, destination socket, protocol badge, application service, duration in seconds, connection state badge, total packet count, and formatted byte tally.
+    * Lines 84–86 & 92–94: Dynamic conditional highlighting (`isAnomaly ? 'bg-amber-50/50' : ''` and rose IP color).
+* **Frontend API Client:**
+  * [`frontend/src/services/api.ts:L142-L158`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L142-L158): `getLiveFlows()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/telemetry.py:L42-L55`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/telemetry.py#L42-L55): `GET /api/telemetry/flows` (live hardware socket table).
+  * [`netmind/src/backend/routers/status.py:L70-L87`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/status.py#L70-L87): `GET /api/flows` (persisted historical flow records from database).
+* **Ingestion Parsers:**
+  * [`netmind/src/ingestion/nic_sniffer.py:L196-L257`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L196-L257): `get_live_flows()` querying kernel socket tables via `psutil.net_connections(kind="inet")`.
+  * [`netmind/src/ingestion/zeek_parser.py:L22-L285`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L22-L285): `ZeekConnParser` standardizing Zeek TSV `#fields` headers and NDJSON into canonical columns (`src_ip`, `dst_ip`, `duration`, `orig_bytes`, `resp_bytes`, `conn_state`).
+* **Relational Schema:**
+  * [`netmind/src/backend/models.py:L62-L95`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L62-L95): `NetworkFlow` table featuring composite indexes on `(src_ip, dst_ip, timestamp)` for high-throughput SOC timeline filtering.
+
+### 4. Step-by-Step Processing & Dataflow Pipeline
+1. **Kernel Socket Sampling:** [`nic_sniffer.py:L196-L257`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/nic_sniffer.py#L196-L257) invokes `psutil.net_connections(kind="inet")` to read all active TCP and UDP sockets from the operating system kernel.
+2. **Socket Normalization:** For each connection:
+   * Local address is mapped to `src_ip` and `src_port`.
+   * Remote peer address is mapped to `dst_ip` and `dst_port`.
+   * Protocol is mapped to `TCP` (`IPPROTO_TCP = 6`) or `UDP` (`IPPROTO_UDP = 17`).
+   * Well-known port numbers are resolved to service names (e.g. `443` $\rightarrow$ `HTTPS`, `80` $\rightarrow$ `HTTP`, `53` $\rightarrow$ `DNS`, `8000` $\rightarrow$ `API`).
+   * Connection state (`ESTABLISHED`, `SYN_SENT`, `LISTEN`, `CLOSE_WAIT`) is mapped to Zeek canonical states (`SF`, `S0`, `REJ`, `RSTO`).
+3. **Log Ingestion Stream:** When Zeek logs are active, [`zeek_parser.py:L92-L135`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L92-L135) extracts connection records, sanitizes missing values (`-`, `(empty)`) into `np.nan` via [`zeek_parser.py:L185-L215`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ingestion/zeek_parser.py#L185-L215), and casts data types.
+4. **REST API Transmission:** `GET /api/telemetry/flows` returns a JSON array of active 5-tuple records.
+5. **UI Rendering:** In `FlowTelemetryView.tsx`, the analyst can filter by IP or protocol, observing real-time connection establishment and packet volume.
 
 ---
 
-## 4. Machine Learning & Explainable AI Layer (`src/ml/`)
+## Module 3: Classified Attack Detections
 
-### Feature 3.1: Zero-Day Anomaly Detection (Unsupervised Isolation Forest)
-* **File:** [`netmind/src/ml/anomaly_detector.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L56-L291)
-* **Domain:** **Artificial Intelligence (Unsupervised)**
-* **Lines of Interest:**
-  * [`anomaly_detector.py:L60-L75`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L60-L75): Initializes `IsolationForest(n_estimators=150, contamination=0.05, n_jobs=-1)`.
-  * [`anomaly_detector.py:L80-L125`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L80-L125): `fit()` — Builds an ensemble of 150 random isolation decision trees on benign network baseline data.
-  * [`anomaly_detector.py:L130-L175`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L130-L175): `predict_anomaly()` — Evaluates tree path length $h(x)$ to compute anomaly score $s \in [0, 1]$:
-    $$s(x, n) = 2^{-\frac{E(h(x))}{c(n)}}, \quad c(n) = 2 \left( \ln(n - 1) + 0.5772156649 \right) - \frac{2(n - 1)}{n}$$
-  * [`anomaly_detector.py:L180-L215`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L180-L215): `calibrate_threshold()` — Calibrates dynamic anomaly boundaries against the empirical 95th-percentile of benign baseline traffic ($s \ge 0.50$).
-  * [`anomaly_detector.py:L220-L260`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L220-L260): `extract_top_divergent_indicators()` — Identifies the exact feature dimensions exhibiting the highest statistical Z-score deviation from benign baselines.
+### 1. High-Level & Operational Purpose
+The **Classified Attack Detections** view is the intelligent threat investigation hub. When network behavior exhibits malicious signatures or patterns, the supervised XGBoost model classifies the flow into specific attack taxonomies (`DoS`, `Port Scan`, `Brute Force`, `Web Attack`). Clicking **"Inspect"** opens the **TreeSHAP Explainability Modal** (`ThreatDetailModal.tsx`), giving analysts mathematical proof of why the model flagged the attack, down to exact feature contributions.
 
----
+### 2. Domain Classification
+* **Primary Domain:** **Artificial Intelligence (Supervised Classification) & Explainable AI (XAI)**
+* **Supporting Domain:** **Cybersecurity (Threat Taxonomy & Triage)**
+* **Why this domain?** It utilizes gradient-boosted decision tree ensembles (`XGBClassifier`) with multiclass probability calibration, combined with Cooperative Game Theory (Shapley Values) to make black-box machine learning fully auditable for human analysts.
 
-### Feature 3.2: Multiclass Attack Classification (Supervised XGBoost)
-* **File:** [`netmind/src/ml/attack_classifier.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L45-L280)
-* **Domain:** **Artificial Intelligence (Supervised)**
-* **Lines of Interest:**
-  * [`attack_classifier.py:L45-L55`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L45-L55): `ATTACK_CLASS_MAP` — Defines the 5 operational classes:
-    * `0: Normal` (Benign enterprise traffic)
-    * `1: DoS` (SYN floods, UDP amplification)
-    * `2: Port Scan` (Sequential reconnaissance sweeps)
-    * `3: Brute Force` (SSH/RDP dictionary attacks)
-    * `4: Web Attack` (SQL injection, XSS, URI traversals)
-  * [`attack_classifier.py:L70-L115`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L70-L115): Configures `XGBClassifier` with `objective="multi:softprob"`, `eval_metric="mlogloss"`, `tree_method="hist"`, and L2 leaf regularization $\lambda$.
-  * [`attack_classifier.py:L120-L160`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L120-L160): `predict_proba()` — Computes calibrated posterior class probability vectors $P(y = k \mid x)$ for every flow.
-  * [`attack_classifier.py:L165-L210`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L165-L210): `evaluate()` — Computes classification reports, per-class F1-scores, precision, recall, and multi-class confusion matrices.
+### 3. Source Code Files & Exact Line References
+* **Frontend View & Inspection Modal:**
+  * [`frontend/src/pages/ClassifiedAttacksView.tsx:L12-L127`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ClassifiedAttacksView.tsx#L12-L127)
+    * Lines 36–51: Category filter buttons (`ALL`, `DoS`, `Port Scan`, `Brute Force`, `Web Attack`).
+    * Lines 54–118: Attack table rendering severity, classification, model confidence %, vector `src -> dst`, attack signature description, status, timestamp, and "Inspect" button.
+  * [`frontend/src/pages/ThreatDetailModal.tsx:L43-L383`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L43-L383)
+    * Lines 120–165: **Step 1 (Observe)** — Flow 5-tuple, protocol, and Suricata signature.
+    * Lines 170–215: **Step 2 (Understand)** — Duration, PPS, BPS, and SYN/ACK asymmetry ratio.
+    * Lines 220–295: **Step 3 (Predict & Explain)** — Horizontal Recharts Bar Chart visualizing exact TreeSHAP feature attributions (positive contributions in rose, negative in blue).
+    * Lines 300–375: **Step 4 (Recommend & Act)** — Containment playbook command preview and one-click execution.
+* **Frontend State & Review Dispatcher:**
+  * [`frontend/src/App.tsx:L128-L165`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L128-L165): `handleUpdateAlertStatus()` syncing alert review status (`ACKNOWLEDGED`, `RESOLVED`) and reducing global risk.
+  * [`frontend/src/services/api.ts:L189-L252`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L189-L252): `getAlerts()` and `reviewAlert()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/threats.py:L20-L75`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/threats.py#L20-L75): `GET /api/threats` & `POST /api/events/{id}/review`.
+  * [`netmind/src/backend/routers/inference.py:L50-L78`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/inference.py#L50-L78): `POST /api/predict/attack`.
+  * [`netmind/src/backend/routers/inference.py:L130-L165`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/inference.py#L130-L165): `POST /api/explain/shap`.
+* **Machine Learning & Feature Engineering:**
+  * [`netmind/src/ml/attack_classifier.py:L45-L280`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py#L45-L280): `AttackClassifier` wrapping `XGBClassifier(objective="multi:softprob")`.
+  * [`netmind/src/ml/explainer.py:L40-L250`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L40-L250): `ModelExplainer` wrapping `shap.TreeExplainer`.
+  * [`netmind/src/features/engineer.py:L53-L379`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py#L53-L379): 30-dim non-memorizing feature extractor.
+* **Database Models:**
+  * [`netmind/src/backend/models.py:L97-L130`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L97-L130): `SecurityEvent` table.
 
----
-
-### Feature 3.3: Autoregressive Traffic Forecasting (XGBoost Regressor)
-* **File:** [`netmind/src/ml/traffic_predictor.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L35-L285)
-* **Domain:** **Data Science & AI (Regression)**
-* **Lines of Interest:**
-  * [`traffic_predictor.py:L70-L110`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L70-L110): `create_lag_features()` — Generates auto-regressive lag windows ($t-1, t-2, t-5$) and rolling statistical moving averages ($w=3, w=5$) for throughput (bytes/sec) and packet rates (pps).
-  * [`traffic_predictor.py:L115-L160`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L115-L160): `fit()` — Fits two independent `XGBRegressor` estimators respecting strict temporal causality (past trains future; never shuffled).
-  * [`traffic_predictor.py:L165-L210`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L165-L210): `predict_with_intervals()` — Generates forward predictions at $t+1$ accompanied by statistical confidence bounds ($\hat{y} \pm 1\sigma$).
-
----
-
-### Feature 3.4: Explainable AI & Feature Attribution (Polynomial TreeSHAP)
-* **File:** [`netmind/src/ml/explainer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L40-L250)
-* **Domain:** **Artificial Intelligence (XAI)**
-* **Lines of Interest:**
-  * [`explainer.py:L65-L95`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L65-L95): `__init__()` — Initializes `shap.TreeExplainer(model)` executing in polynomial time $O(T \cdot L \cdot D^2)$ instead of exponential $O(2^{|F|})$.
-  * [`explainer.py:L100-L150`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L100-L150): `explain_instance()` — Computes exact local Shapley values:
-    $$\phi_i(x) = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F| - |S| - 1)!}{|F|!} \left[ f_x(S \cup \{i\}) - f_x(S) \right]$$
-  * [`explainer.py:L155-L215`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L155-L215): `generate_soc_narrative()` — Synthesizes mathematical feature attributions into plain-English SOC analyst reporting statements (e.g. *"Observed SYN/ACK ratio of 71.0 pushes probability toward Port Scan by +0.48"*).
+### 4. Mathematical Formulation & Processing Pipeline
+1. **Behavioral Feature Extraction:** [`engineer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/features/engineer.py) transforms raw flow attributes into a 30-dimensional numerical vector. Static identifiers (`src_ip`, `dst_ip`, `flow_id`, `ts`) are explicitly dropped to prevent lab memorization. Key calculated features:
+   $$\text{bytes\_per\_sec} = \frac{\text{orig\_bytes} + \text{resp\_bytes}}{\text{duration} + 10^{-6}}, \quad \text{syn\_ack\_ratio} = \frac{\text{syn\_count}}{\text{ack\_count} + 1}$$
+2. **Supervised Classification:** The vector is passed to [`attack_classifier.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/attack_classifier.py). The model computes posterior probabilities across the 5 target classes:
+   $$P(y = k \mid x) = \frac{e^{z_k(x)}}{\sum_{j=0}^{4} e^{z_j(x)}}, \quad k \in \{\text{Normal}, \text{DoS}, \text{Port Scan}, \text{Brute Force}, \text{Web Attack}\}$$
+   The class with the highest probability $\hat{k} = \arg\max_k P(y=k \mid x)$ is selected. If $\hat{k} \ne 0$ (not Normal), a `SecurityEvent` is generated with `confidence_percent` $= P(y=\hat{k}\mid x) \times 100$.
+3. **Polynomial TreeSHAP Attribution:** When the analyst clicks **Inspect**, [`explainer.py:L100-L150`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/explainer.py#L100-L150) calculates exact Shapley values $\phi_i(x)$ for each feature $i$:
+   $$\phi_i(x) = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!(|F| - |S| - 1)!}{|F|!} \left[ f_x(S \cup \{i\}) - f_x(S) \right]$$
+   Computed in polynomial time $O(T \cdot L \cdot D^2)$ (where $T$ is the number of trees, $L$ is maximum leaves, and $D$ is maximum tree depth).
+4. **Analyst Presentation:** In `ThreatDetailModal.tsx`, the top positive and negative features are plotted in a horizontal bar chart, showing exactly how much each feature (e.g. `syn_ack_ratio = 71.0`) elevated the attack classification probability.
 
 ---
 
-## 5. Backend, Scoring & REST Serving Layer (`src/backend/`)
+## Module 4: Unsupervised Anomalies
 
-### Feature 4.1: Database Engine, ORM & Connection Pooling
-* **File:** [`netmind/src/backend/database.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/database.py#L24-L104)
-* **Domain:** **Data Science & Systems Engineering**
-* **Lines of Interest:**
-  * [`database.py:L30-L40`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/database.py#L30-L40): Resolves `DATABASE_URL` with automatic local SQLite fallback (`data/netmind.db`) and PostgreSQL production normalization.
-  * [`database.py:L41-L62`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/database.py#L41-L62): Configures SQLAlchemy 2.0 `create_engine` with `pool_pre_ping=True`, `pool_size=10`, `max_overflow=20`, and `pool_recycle=1800`.
-  * [`database.py:L70-L80`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/database.py#L70-L80): `get_db()` — FastAPI dependency injection yielding scoped database sessions with guaranteed teardown.
+### 1. High-Level & Operational Purpose
+The **Unsupervised Anomalies** module detects novel, zero-day threats, advanced persistent threats (APTs), and stealthy exfiltration that have no prior signatures and bypass supervised classifiers. By building an ensemble of 150 random isolation trees on normal network baseline behavior, it flags statistical outliers exceeding the empirical 95th-percentile anomaly threshold ($s \ge 0.50$).
 
----
+### 2. Domain Classification
+* **Primary Domain:** **Artificial Intelligence (Unsupervised Anomaly Detection)**
+* **Supporting Domain:** **Data Science (Robust Scaling & Nonparametric Statistics)**
+* **Why this domain?** It isolates multi-dimensional outliers in high-dimensional feature space without needing ground-truth training labels, using tree path length compression and median/IQR robust scaling.
 
-### Feature 4.2: Relational Data Models & Composite Indexing
-* **File:** [`netmind/src/backend/models.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L25-L180)
-* **Domain:** **Cybersecurity & Data Science**
-* **Lines of Interest:**
-  * [`models.py:L40-L60`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L40-L60): `Host` table with `ip_address` (unique index), `hostname`, `risk_score`, and containment status (`active`, `quarantined`).
-  * [`models.py:L62-L95`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L62-L95): `NetworkFlow` table with composite indexes on `(src_ip, dst_ip, timestamp)` for high-throughput SOC timeline filtering.
-  * [`models.py:L97-L130`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L97-L130): `SecurityEvent` table tracking detected attacks, severity, confidence, and analyst review status.
-  * [`models.py:L145-L175`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L145-L175): `Recommendation` table storing proposed NIST containment actions and operator audit trails.
+### 3. Source Code Files & Exact Line References
+* **Frontend View:**
+  * [`frontend/src/pages/AnomaliesView.tsx:L1-L99`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/AnomaliesView.tsx#L1-L99)
+    * Lines 26–28: Calibrated threshold badge ($s \ge 0.50$).
+    * Lines 32–88: Anomaly table displaying Anomaly ID, timestamp, subject host IP, numerical anomaly score with visual fill bar, divergent behavioral indicators (e.g. `flow_duration_spike`, `high_failed_connection_ratio`), and triage state badge (`OPEN`, `RESOLVED`).
+* **Frontend API Client:**
+  * [`frontend/src/services/api.ts:L160-L185`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L160-L185): `getAnomalies()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/inference.py:L80-L125`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/inference.py#L80-L125): `POST /api/predict/anomaly`.
+  * [`netmind/src/backend/routers/threats.py:L20-L75`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/threats.py#L20-L75): `GET /api/threats` (aggregating anomaly records).
+* **Machine Learning & Preprocessing:**
+  * [`netmind/src/ml/anomaly_detector.py:L56-L291`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L56-L291): `NetworkAnomalyDetector` wrapping `sklearn.ensemble.IsolationForest(n_estimators=150, contamination=0.05, n_jobs=-1)`.
+  * [`netmind/src/ml/dataset.py:L55-L95`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/dataset.py#L55-L95): `NetMindPreprocessor` utilizing `RobustScaler` (median & IQR) to handle extreme heavy-tailed network burst distributions.
 
----
-
-### Feature 4.3: Multi-Vector Risk Formulation & Decision Engine
-* **File:** [`netmind/src/backend/decision_engine.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L68-L316)
-* **Domain:** **Cybersecurity & Data Science**
-* **Lines of Interest:**
-  * [`decision_engine.py:L71-L76`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L71-L76): Weight allocation:
-    * $W_{\text{security}} = 0.40$
-    * $W_{\text{anomaly}} = 0.25$
-    * $W_{\text{performance}} = 0.20$
-    * $W_{\text{historical}} = 0.15$
-  * [`decision_engine.py:L95-L135`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L95-L135): `calculate_risk_score()`:
-    $$\text{Overall Risk} = 0.40 \cdot S + 0.25 \cdot A + 0.20 \cdot P + 0.15 \cdot H$$
-  * [`decision_engine.py:L137-L168`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L137-L168): `categorize_score()`:
-    * `LOW`: $0 \le \text{Risk} \le 25$
-    * `MEDIUM`: $26 \le \text{Risk} \le 50$
-    * `HIGH`: $51 \le \text{Risk} \le 75$
-    * `CRITICAL`: $76 \le \text{Risk} \le 100$
-  * [`decision_engine.py:L204-L316`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L204-L316): `generate_recommendations()` — Generates **NIST SP 800-61** containment playbooks:
-    * `BLOCK_SOURCE_IP`: Perimeter drop rule (`iptables -A INPUT -s <IP> -j DROP`)
-    * `RATE_LIMIT_PORT`: QoS traffic shaping (`tc qdisc add dev eth0 root tbf ...`)
-    * `QUARANTINE_HOST`: Host isolation (`netm-cli host isolate --ip <IP>`)
-    * `WAF_BLOCK_URI_PATTERN`: Web application firewall regex patch (`waf-ctl filter add ...`)
+### 4. Mathematical Formulation & Processing Pipeline
+1. **Isolation Forest Tree Construction:** During training on benign traffic, 150 random decision trees are constructed. At each node, a feature is selected at random, and a random split point is chosen between the feature's minimum and maximum values.
+2. **Path Length Evaluation:** Anomalies reside in sparse regions of the 30-dimensional space; therefore, fewer random cuts are required to isolate them into terminal leaf nodes. Given sample $x$ and sample size $n$, the anomaly score $s(x, n)$ is computed as:
+   $$s(x, n) = 2^{-\frac{E(h(x))}{c(n)}}$$
+   Where $E(h(x))$ is the expected tree depth (path length) across all 150 trees, and $c(n)$ is the average path length of unsuccessful searches in a Binary Search Tree:
+   $$c(n) = 2 \left( \ln(n - 1) + 0.5772156649 \right) - \frac{2(n - 1)}{n}$$
+3. **Score Interpretation & Threshold:**
+   * If $E(h(x)) \to 0 \implies s \to 1$: Flow is isolated in very few splits $\implies$ **Definite Anomaly**.
+   * If $E(h(x)) \to n - 1 \implies s \to 0$: Flow requires deep traversal $\implies$ **Normal Benign**.
+   * Calibrated threshold: When $s \ge 0.50$, the event is flagged as an anomaly.
+4. **Behavioral Divergence Extraction:** [`anomaly_detector.py:L220-L260`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/anomaly_detector.py#L220-L260) computes the Z-score deviation of each feature relative to benign medians:
+   $$Z_i = \frac{|x_i - \text{median}(X_i)|}{\text{IQR}(X_i) + 10^{-6}}$$
+   The top divergent features are attached as readable badges in the UI (e.g. `bytes_per_second_spike`, `high_syn_ack_asymmetry`).
 
 ---
 
-### Feature 4.4: Modular REST API Routers
-* **Directory:** [`netmind/src/backend/routers/`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/)
-* **Domain:** **Systems Architecture & REST Integration**
-* **Lines of Interest:**
-  * [`telemetry.py:L19-L55`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/telemetry.py#L19-L55): `/api/telemetry/live`, `/api/telemetry/flows`, `/api/telemetry/interfaces`, `/api/telemetry/interface` — Provides the live NIC sliding buffer and active connection sockets.
-  * [`status.py:L21-L87`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/status.py#L21-L87): `/api/network/status` — Returns macro network health, active host counts, composite risk, and real-time BPS/PPS.
-  * [`threats.py:L20-L75`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/threats.py#L20-L75): `/api/threats` & `/api/events/{id}/review` — Returns classified attack events and handles analyst triage reviews.
-  * [`recommendations.py:L21-L64`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/recommendations.py#L21-L64): `/api/recommendations` & `/api/recommendations/{id}/review` — Retrieves and executes containment playbooks.
-  * [`inference.py:L50-L180`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/inference.py#L50-L180): `/api/predict/attack`, `/api/predict/anomaly`, `/api/explain/shap` — Real-time online ML inference and TreeSHAP scoring.
+## Module 5: Performance & Traffic Forecast
+
+### 1. High-Level & Operational Purpose
+The **Performance & Traffic Forecast** module enables proactive capacity management and predictive quality-of-service (QoS) engineering. Rather than merely reacting to packet drops or interface saturation after they occur, this module forecasts future ingress/egress throughput over a 45-minute horizon, plotting expected Mbps curves alongside statistical confidence intervals ($\pm 1\sigma$). It automatically warns operators if projected demand approaches physical trunk interface capacity.
+
+### 2. Domain Classification
+* **Primary Domain:** **Data Science & AI (Time-Series Regression)**
+* **Supporting Domain:** **Computer Networks & Capacity Planning**
+* **Why this domain?** It utilizes autoregressive lag windows ($t-1, t-2, t-5$) and rolling statistical moving averages, trained under strict temporal causality with gradient-boosted regression trees (`XGBRegressor`).
+
+### 3. Source Code Files & Exact Line References
+* **Frontend View:**
+  * [`frontend/src/pages/TrafficForecastView.tsx:L1-L199`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/TrafficForecastView.tsx#L1-L199)
+    * Lines 23–27 & 92–104: Physical trunk link limit monitor ($70.0\text{ Mbps}$) triggering a yellow capacity warning banner if max projected throughput exceeds 85% ($59.5\text{ Mbps}$).
+    * Lines 116–184: Recharts `ComposedChart` combining `<Line>` (actual historical throughput in blue), `<Line>` (model projected curve in dark slate), `<Area>` (shaded $+1\sigma$ confidence envelope in light gray), and `<ReferenceLine>` (physical trunk threshold in dashed red).
+    * Lines 29–69: Custom hover tooltip rendering precise actual vs predicted values and $\pm 1\sigma$ upper/lower bounds.
+* **Frontend API Client:**
+  * [`frontend/src/services/api.ts:L97-L140`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L97-L140): `getTrafficForecast()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/inference.py:L140-L180`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/inference.py#L140-L180): `POST /api/predict/traffic`.
+* **Predictive ML Engine:**
+  * [`netmind/src/ml/traffic_predictor.py:L35-L285`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L35-L285): `TrafficPredictor` implementing autoregressive feature engineering, dual `XGBRegressor` training, and confidence interval estimation.
+
+### 4. Mathematical Formulation & Processing Pipeline
+1. **Autoregressive Feature Engineering:** Given a regular time-series of throughput observations $y_t$, [`traffic_predictor.py:L70-L110`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L70-L110) extracts lag features and rolling window summary statistics:
+   $$x_t = \Big[ y_{t-1}, \; y_{t-2}, \; y_{t-5}, \; \mu_{(t-3:t)}, \; \mu_{(t-5:t)}, \; \sigma_{(t-5:t)} \Big]$$
+   Where $\mu$ is rolling mean and $\sigma$ is rolling standard deviation.
+2. **Causal Regression Model:** An `XGBRegressor` is trained under squared-error loss:
+   $$\mathcal{L}(\theta) = \sum_{t} \left( y_{t+1} - \hat{y}_{t+1} \right)^2 + \gamma T + \frac{1}{2}\lambda \sum_{j=1}^T w_j^2$$
+   Temporal order is strictly preserved (data is never randomly shuffled) to avoid data leakage from future into past.
+3. **Confidence Interval Estimation:** [`traffic_predictor.py:L165-L210`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/ml/traffic_predictor.py#L165-L210) calculates the residual standard error $\sigma_{\epsilon}$ on the validation window:
+   $$\hat{y}_{\text{upper}} = \hat{y} + 1.0 \times \sigma_{\epsilon}, \quad \hat{y}_{\text{lower}} = \max\left(0, \hat{y} - 1.0 \times \sigma_{\epsilon}\right)$$
+4. **Proactive Capacity Alarm:** If $\hat{y}_{\text{upper}} \ge 0.85 \times \text{TrunkLimit}$, the system issues an early warning to the Decision Engine, recommending proactive traffic shaping before physical packet drops occur.
 
 ---
 
-## 6. Worker Daemon & Synthetic Testing Lab (`src/worker/`, `scripts/`)
+## Module 6: Decision Engine & Recommendations
 
-### Feature 5.1: Streaming Ingestion Daemon with Checkpoint Offsets
-* **File:** [`netmind/src/worker/log_tailer.py`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/worker/log_tailer.py#L80-L763)
-* **Domain:** **Data Science & Systems Engineering**
-* **Lines of Interest:**
-  * [`log_tailer.py:L85-L165`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/worker/log_tailer.py#L85-L165): `CheckpointManager` — Tracks file byte offsets and inode numbers inside `logs/.tailer_checkpoint.json`. Detects log rotation across platforms via inode changes and file size shrinkage.
-  * [`log_tailer.py:L260-L380`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/worker/log_tailer.py#L260-L380): `NetMindLogTailer.process_new_events()` — Incremental line reading with zero duplicate processing.
-  * [`log_tailer.py:L400-L530`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/worker/log_tailer.py#L400-L530): End-to-end streaming pipeline: Parses line $\rightarrow$ Extracts 30 features $\rightarrow$ RobustScales $\rightarrow$ Predicts Anomaly (Isolation Forest) $\rightarrow$ Classifies Attack (XGBoost) $\rightarrow$ Computes Risk $\rightarrow$ Commits atomic SQL transaction.
+### 1. High-Level & Operational Purpose
+The **Decision Engine & Recommendations** module bridges artificial intelligence and automated incident response (IR). It computes a composite 0–100 risk score for every host, maps classified threats and capacity alarms to standard **NIST SP 800-61** containment playbooks, and provides SOC operators with actionable, copyable terminal commands and a 1-click **"Simulate Remediation"** button.
+
+### 2. Domain Classification
+* **Primary Domain:** **Cybersecurity Operations & Incident Response**
+* **Supporting Domain:** **Systems Engineering & Data Science (Multi-Criteria Decision Analysis)**
+* **Why this domain?** It enforces security containment policies (host quarantine, IP blocking, QoS shaping, WAF filtering) according to NIST standards, auditable operator state machines, and weighted multi-vector risk synthesis.
+
+### 3. Source Code Files & Exact Line References
+* **Frontend View:**
+  * [`frontend/src/pages/RecommendationsView.tsx:L1-L144`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/RecommendationsView.tsx#L1-L144)
+    * Lines 21–27 & 44–58: State filter pills (`ALL`, `PENDING`, `ACKNOWLEDGED`, `RESOLVED`).
+    * Lines 76–138: Recommendation cards displaying action ID, title, severity badge, target host IP, linked incident ID, timestamp, operational explanation narrative, copyable CLI command snippet, and interactive execution button.
+    * Lines 116–121: Visual transition to "Remediation Enforced" with emerald checkmark badge upon execution.
+* **Frontend State & API Client:**
+  * [`frontend/src/App.tsx:L166-L181`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L166-L181): `handleExecuteRecommendation()` syncing recommendation state to `RESOLVED`, resolving linked alerts, reducing global risk, and dispatching execution to the backend.
+  * [`frontend/src/services/api.ts:L218-L267`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L218-L267): `getRecommendations()` (normalizing database snake_case fields to typed contracts) and `executeRemediation()`.
+* **Backend Routers & Endpoints:**
+  * [`netmind/src/backend/routers/recommendations.py:L21-L64`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/routers/recommendations.py#L21-L64): `GET /api/recommendations` & `POST /api/recommendations/{id}/review`.
+* **Decision Engine Core:**
+  * [`netmind/src/backend/decision_engine.py:L68-L316`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L68-L316): `NetMindDecisionEngine` containing the 4-vector risk formulation and NIST containment playbook templates.
+* **Database Models:**
+  * [`netmind/src/backend/models.py:L145-L175`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/models.py#L145-L175): `Recommendation` ORM model recording playbook actions, target hosts, status, and reviewer audit trails.
+
+### 4. Mathematical Formulation & Processing Pipeline
+1. **Multi-Vector Host Risk Formulation:** [`decision_engine.py:L71-L135`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L71-L135) evaluates host risk by fusing four orthogonal security telemetry vectors:
+   $$\text{Overall Risk} = W_{\text{sec}} \cdot S + W_{\text{anom}} \cdot A + W_{\text{perf}} \cdot P + W_{\text{hist}} \cdot H$$
+   $$\text{Where: } W_{\text{sec}} = 0.40, \; W_{\text{anom}} = 0.25, \; W_{\text{perf}} = 0.20, \; W_{\text{hist}} = 0.15$$
+   $$\sum W = 1.0, \quad \text{Overall Risk} \in [0, 100]$$
+   * $S$ (**Security Vector**): Severity and confidence of classified attack events targeting or originating from the host.
+   * $A$ (**Anomaly Vector**): Unsupervised Isolation Forest score ($s \times 100$).
+   * $P$ (**Performance Vector**): Ratio of current traffic rate to interface capacity threshold.
+   * $H$ (**Historical Vector**): Past incident frequency and unresolved vulnerability records.
+2. **Score Stratification:**
+   * $0 \le \text{Risk} \le 25 \implies$ `LOW` (Routine monitoring)
+   * $26 \le \text{Risk} \le 50 \implies$ `MEDIUM` (Enhanced telemetry logging)
+   * $51 \le \text{Risk} \le 75 \implies$ `HIGH` (Analyst triage required)
+   * $76 \le \text{Risk} \le 100 \implies$ `CRITICAL` (Immediate automated containment)
+3. **NIST SP 800-61 Playbook Selection:** [`decision_engine.py:L204-L316`](file:///d:/Coding/GitHub/NetMind_AI/netmind/src/backend/decision_engine.py#L204-L316) synthesizes the appropriate mitigation based on attack classification:
+   * **Port Scan / Brute Force:** Generates `BLOCK_SOURCE_IP`:
+     ```bash
+     iptables -A INPUT -s <Attacker_IP> -j DROP
+     ```
+   * **Volumetric DoS:** Generates `RATE_LIMIT_PORT`:
+     ```bash
+     tc qdisc add dev eth0 root tbf rate 50mbit burst 32kbit latency 400ms
+     ```
+   * **Compromised Internal Host:** Generates `QUARANTINE_HOST`:
+     ```bash
+     netm-cli host isolate --ip <Host_IP>
+     ```
+   * **Web Attack (SQLi / XSS):** Generates `WAF_BLOCK_URI_PATTERN`:
+     ```bash
+     waf-ctl filter add --pattern "(union.*select|<script)" --action block
+     ```
+4. **Execution & Audit Trail:** Clicking **"Simulate Remediation"** sends `POST /api/recommendations/{id}/review` with `{"action": "approved"}`. The database updates the recommendation status to `approved`, sets `reviewed_by = "Administrator"`, marks the linked security alert as `RESOLVED`, and decreases the system composite risk index.
 
 ---
 
-### Feature 5.2: Safe Loopback Traffic Generator
-* **File:** [`scripts/traffic_generator.py`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py#L50-L612)
-* **Domain:** **Cybersecurity & Testing Automation**
-* **Lines of Interest:**
-  * [`traffic_generator.py:L102-L210`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py#L102-L210): `TelemetryLogEmitter` — Synchronously appends simulated Zeek TSV (`logs/conn.log`) and Suricata NDJSON (`logs/eve.json`) records.
-  * [`traffic_generator.py:L215-L270`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py#L215-L270): `run_baseline()` — Scenario A: Simulates benign enterprise HTTP GET and DNS queries.
-  * [`traffic_generator.py:L275-L330`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py#L275-L330): `run_port_probe()` — Scenario B: Simulates reconnaissance SYN sweeps across sequential ports (`8000..8015`).
-  * [`traffic_generator.py:L335-L390`](file:///d:/Coding/GitHub/NetMind_AI/scripts/traffic_generator.py#L335-L390): `run_volumetric_burst()` — Scenario C: Simulates high-rate traffic bursts to evaluate queue ingestion and capacity alarms.
+## Complete Verification & Validation Reference
 
----
-
-## 7. High-Density SOC Frontend Portal (`frontend/src/`)
-
-### Feature 6.1: High-Frequency Polling Engine & State Container
-* **File:** [`frontend/src/App.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L33-L186)
-* **Domain:** **Systems Integration**
-* **Lines of Interest:**
-  * [`App.tsx:L50-L95`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L50-L95): 1.2-second interval polling loop executing `Promise.all()` across `/api/telemetry/live`, `/api/network/status`, `/api/telemetry/flows`, `/api/threats`, and `/api/recommendations`.
-  * [`App.tsx:L120-L135`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L120-L135): Global Navbar wiring with active hardware NIC adapter switching (`Wi-Fi`, `Ethernet`, `Loopback`).
-  * [`App.tsx:L175-L182`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/App.tsx#L175-L182): Mounts `ThreatDetailModal` for deep inspection.
-
----
-
-### Feature 6.2: Normalized REST Service Adapter
-* **File:** [`frontend/src/services/api.ts`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L65-L268)
-* **Domain:** **Data Engineering**
-* **Lines of Interest:**
-  * [`api.ts:L65-L95`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L65-L95): `getLiveTelemetry()` — Fetches sliding 40-point time-series from hardware NIC.
-  * [`api.ts:L142-L158`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L142-L158): `getLiveFlows()` — Streams active network socket tables.
-  * [`api.ts:L189-L260`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L189-L260): `getAlerts()` & `getRecommendations()` — Normalizes database snake_case fields into typed contracts (`title`, `commandSnippet`, `severity`, uppercase `ActionStatus`).
-  * [`api.ts:L254-L267`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/services/api.ts#L254-L267): `executeRemediation()` — Binds numeric IDs to `/api/recommendations/{id}/review`.
-
----
-
-### Feature 6.3: Executive HUD & Live Recharts Telemetry
-* **File:** [`frontend/src/pages/Overview.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L42-L416)
-* **Domain:** **All Three Domains**
-* **Lines of Interest:**
-  * [`Overview.tsx:L87-L180`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L87-L180): Top 4 KPI Metric Cards: Monitored Endpoints, Real-Time Ingress/Egress PPS, 0–100 Composite Risk Progress Bar, and Active Flagged Incidents.
-  * [`Overview.tsx:L185-L250`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L185-L250): Recharts Responsive Dual-Line Chart rendering live Inbound (blue) vs Outbound (slate) Mbps time series.
-  * [`Overview.tsx:L255-L330`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L255-L330): Recent Incidents Queue with one-click **"Inspect"** button triggers.
-  * [`Overview.tsx:L335-L410`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/Overview.tsx#L335-L410): Live Telemetry Stream table displaying real socket connections.
-
----
-
-### Feature 6.4: 4-Step Explainable AI Decision Support Modal
-* **File:** [`frontend/src/pages/ThreatDetailModal.tsx`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L43-L383)
-* **Domain:** **Explainable AI (XAI) & Human-in-the-Loop**
-* **Lines of Interest:**
-  * [`ThreatDetailModal.tsx:L120-L165`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L120-L165): **Step 1 (Observe)**: Alert signature, source socket, destination socket, protocol, and severity.
-  * [`ThreatDetailModal.tsx:L170-L215`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L170-L215): **Step 2 (Understand)**: Forensic telemetry metrics (flow duration, PPS, byte rate, SYN/ACK ratio, failed connection ratio).
-  * [`ThreatDetailModal.tsx:L220-L295`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L220-L295): **Step 3 (Predict & Explain)**: Interactive horizontal Recharts Bar Chart rendering exact TreeSHAP Shapley feature attributions (positive contributions in rose, negative in blue).
-  * [`ThreatDetailModal.tsx:L300-L375`](file:///d:/Coding/GitHub/NetMind_AI/frontend/src/pages/ThreatDetailModal.tsx#L300-L375): **Step 4 (Recommend & Act)**: NIST containment playbook display with terminal CLI command preview and one-click execution triggers.
+| Component | Test Suite / Verification Mechanism | File Path | Status |
+|---|---|---|---|
+| **Anomaly Detector** | Unit tests verifying isolation tree fit, calibrated 0.50 threshold, and Z-score divergent indicator extraction. | [`tests/test_anomaly_detector.py`](file:///d:/Coding/GitHub/NetMind_AI/tests/test_anomaly_detector.py) | **33/33 Tests Passing** |
+| **Attack Classifier** | Stratified train/val/test splits, multi:softprob posteriors, confusion matrices, and per-class F1 evaluation. | [`tests/test_attack_classifier.py`](file:///d:/Coding/GitHub/NetMind_AI/tests/test_attack_classifier.py) | **Passing** |
+| **Traffic Predictor** | Causal lag feature creation, temporal ordering verification, and prediction interval bounds ($\hat{y} \pm 1\sigma$). | [`tests/test_traffic_predictor.py`](file:///d:/Coding/GitHub/NetMind_AI/tests/test_traffic_predictor.py) | **Passing** |
+| **Decision Engine** | Composite risk score calculation ($0.40S + 0.25A + 0.20P + 0.15H$) and NIST containment playbook generation. | [`tests/test_decision_engine.py`](file:///d:/Coding/GitHub/NetMind_AI/tests/test_decision_engine.py) | **Passing** |
+| **Hardware NIC Sniffer** | Dynamic adapter detection (`psutil`), 1.0s delta rate sampling, and socket 5-tuple extraction. | [`tests/test_nic_sniffer.py`](file:///d:/Coding/GitHub/NetMind_AI/tests/test_nic_sniffer.py) | **Passing** |
+| **Frontend Portal** | Production TypeScript bundle compilation, Recharts charts, and modal explainability flows. | `npm run build` in `frontend/` | **Zero Lint/Build Errors** |
