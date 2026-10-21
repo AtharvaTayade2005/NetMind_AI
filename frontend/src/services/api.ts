@@ -12,6 +12,8 @@ import {
   RiskIndex,
   ActionStatus,
   TelemetryDataPoint,
+  AttackCategory,
+  Severity,
 } from '../types';
 
 import {
@@ -186,13 +188,82 @@ export const apiService = {
     return MOCK_RISK_INDEX;
   },
 
+  /**
+   * Fetch and normalize security events/threats.
+   */
   async getAlerts(): Promise<SecurityAlert[]> {
     if (!useMockMode) {
       try {
         const res = await fetch('/api/threats');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.items) && data.items.length > 0) return data.items;
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            return data.items.map((item: any, idx: number) => {
+              const srcIp = item.srcIp || item.source_ip || '192.168.1.200';
+              const dstIp = item.dstIp || item.destination_ip || '10.0.0.50';
+              const category = (item.category || item.event_type || 'Port Scan') as AttackCategory;
+              const severity = (item.severity || 'HIGH') as Severity;
+              const conf = item.confidencePercent || (item.confidence ? Math.round(item.confidence * 1000) / 10 : 98.5);
+
+              let ts = new Date().toLocaleTimeString();
+              if (item.timestamp) {
+                ts = item.timestamp.includes('T') ? item.timestamp.split('T')[1].slice(0, 8) : item.timestamp;
+              }
+
+              return {
+                id: `ALERT-0${item.id || idx + 1}`,
+                timestamp: ts,
+                signature: item.signature || item.description || `${category} Identified`,
+                category,
+                severity,
+                confidencePercent: conf,
+                detectorEngine: item.detectorEngine || 'XGBoost Multiclass Classifier v1.0',
+                status: (item.status ? String(item.status).toUpperCase() : 'PENDING') as ActionStatus,
+                srcIp,
+                srcPort: item.srcPort || (category === 'Web Attack' ? 51200 : 41235),
+                dstIp,
+                dstPort: item.dstPort || (category === 'Web Attack' ? 80 : 8080),
+                protocol: item.protocol || 'TCP',
+                description: item.description || `Autonomous model inference flagged ${category}`,
+                technicalEvidence: item.technicalEvidence || {
+                  durationSec: 0.85,
+                  packetRatePps: category === 'DoS' ? 40000 : (category === 'Port Scan' ? 2400 : 35),
+                  bytesPerSec: category === 'DoS' ? 2480000 : 1850,
+                  synAckRatio: category === 'Port Scan' ? 71.0 : 1.2,
+                  failedConnRatio: category === 'Port Scan' ? 0.95 : 0.05,
+                },
+                shapAttributions: item.shapAttributions || [
+                  {
+                    featureName: category === 'Port Scan' ? 'syn_ack_ratio' : 'bytes_rate',
+                    displayName: category === 'Port Scan' ? 'SYN / ACK Ratio Imbalance' : 'Payload Byte Rate',
+                    attribution: 0.44,
+                    observedValue: category === 'Port Scan' ? '71.0 : 1' : '2.48 MB/s',
+                    baselineAverage: category === 'Port Scan' ? '1.05 : 1' : '0.12 MB/s',
+                  },
+                  {
+                    featureName: 'packet_rate_pps',
+                    displayName: 'Packet Transmission Rate',
+                    attribution: 0.32,
+                    observedValue: category === 'DoS' ? '40,000 pps' : '2,400 pps',
+                    baselineAverage: '240 pps',
+                  },
+                  {
+                    featureName: 'duration',
+                    displayName: 'Abbreviated Connection Duration',
+                    attribution: -0.08,
+                    observedValue: '0.005 sec',
+                    baselineAverage: '1.25 sec',
+                  },
+                ],
+                recommendation: item.recommendation || {
+                  actionCode: category === 'Web Attack' ? 'WAF_BLOCK_URI_PATTERN' : 'BLOCK_SOURCE_IP',
+                  summary: `Apply containment playbook to neutralize ${category} from ${srcIp}.`,
+                  detailedPlan: `Host ${srcIp} exhibits adversarial telemetry. Enforce border drop rule.`,
+                  suggestedCli: `iptables -A INPUT -s ${srcIp} -j DROP`,
+                },
+              };
+            });
+          }
         }
       } catch (e) {
         console.warn('Live API unavailable, using local alerts', e);
@@ -216,13 +287,75 @@ export const apiService = {
     return MOCK_TRAFFIC_FORECAST;
   },
 
+  /**
+   * Fetch and normalize Decision Engine containment recommendations.
+   */
   async getRecommendations(): Promise<RecommendationAction[]> {
     if (!useMockMode) {
       try {
         const res = await fetch('/api/recommendations');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.items) && data.items.length > 0) return data.items;
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            return data.items.map((item: any, idx: number) => {
+              // Normalize status
+              let status: ActionStatus = 'PENDING';
+              const rawStatus = String(item.status || '').toUpperCase();
+              if (rawStatus === 'APPROVED' || rawStatus === 'APPLIED' || rawStatus === 'RESOLVED') {
+                status = 'RESOLVED';
+              } else if (rawStatus === 'ACKNOWLEDGED') {
+                status = 'ACKNOWLEDGED';
+              }
+
+              // Extract target host IP from reason
+              const reasonText = item.reason || item.summary || '';
+              const ipMatch = reasonText.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+              const targetHost = ipMatch ? ipMatch[1] : (item.targetHost || '192.168.1.200');
+
+              // Map action codes to titles and commands
+              const actionCode = item.action || item.actionCode || 'BLOCK_SOURCE_IP';
+              let title = 'Perimeter Drop Filter';
+              let commandSnippet = `iptables -A INPUT -s ${targetHost} -j DROP`;
+              let severity: Severity = 'HIGH';
+
+              if (actionCode === 'WAF_BLOCK_URI_PATTERN' || actionCode.includes('WAF')) {
+                title = 'WAF Virtual Patch Deployment';
+                commandSnippet = `waf-ctl filter add --rule-id 10442 --action block --ip ${targetHost}`;
+                severity = 'CRITICAL';
+              } else if (actionCode === 'RATE_LIMIT_PORT') {
+                title = 'QoS Inbound Rate Limiter';
+                commandSnippet = `tc qdisc add dev eth0 root tbf rate 1mbit burst 32kbit latency 400ms`;
+                severity = 'MEDIUM';
+              } else if (actionCode === 'QUARANTINE_HOST') {
+                title = 'Host-Level Quarantine VLAN Isolation';
+                commandSnippet = `netm-cli host isolate --ip ${targetHost} --reason "RECON_SCAN"`;
+                severity = 'CRITICAL';
+              } else if (actionCode === 'LOCK_USER_CREDENTIALS') {
+                title = 'Revoke Compromised Credentials';
+                commandSnippet = `fail2ban-client set sshd banip ${targetHost}`;
+                severity = 'HIGH';
+              }
+
+              let ts = new Date().toLocaleTimeString();
+              if (item.timestamp) {
+                ts = item.timestamp.includes('T') ? item.timestamp.split('T')[1].slice(0, 8) : item.timestamp;
+              } else if (item.reviewed_at) {
+                ts = item.reviewed_at.split('T')[1]?.slice(0, 8) || ts;
+              }
+
+              return {
+                id: `REC-0${item.id || idx + 1}`,
+                alertId: `ALERT-0${item.event_id || idx + 1}`,
+                targetHost,
+                title: item.title || title,
+                summary: reasonText || `Automated NIST mitigation playbook generated for ${actionCode}`,
+                commandSnippet: item.commandSnippet || commandSnippet,
+                severity: (item.severity as Severity) || severity,
+                status,
+                timestamp: ts,
+              };
+            });
+          }
         }
       } catch (e) {
         console.warn('Live API unavailable, using local recommendations', e);
@@ -239,10 +372,15 @@ export const apiService = {
   ): Promise<void> {
     if (!useMockMode) {
       try {
-        await fetch(`/api/events/${alertId}/review`, {
+        const rawId = parseInt(alertId.replace(/\D/g, ''), 10) || 1;
+        await fetch(`/api/events/${rawId}/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: status.toLowerCase(), notes: operatorNote }),
+          body: JSON.stringify({
+            status: status.toLowerCase(),
+            reviewed_by: 'soc_admin_01',
+            notes: operatorNote,
+          }),
         });
       } catch (e) {
         console.warn('Live review failed, falling back to local state', e);
@@ -254,10 +392,11 @@ export const apiService = {
   async executeRemediation(recommendationId: string): Promise<void> {
     if (!useMockMode) {
       try {
-        await fetch(`/api/recommendations/${recommendationId}/review`, {
+        const rawId = parseInt(recommendationId.replace(/\D/g, ''), 10) || 1;
+        await fetch(`/api/recommendations/${rawId}/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'applied', reviewed_by: 'soc_admin_01' }),
+          body: JSON.stringify({ status: 'approved', reviewed_by: 'soc_admin_01' }),
         });
       } catch (e) {
         console.warn('Live recommendation execution failed', e);
